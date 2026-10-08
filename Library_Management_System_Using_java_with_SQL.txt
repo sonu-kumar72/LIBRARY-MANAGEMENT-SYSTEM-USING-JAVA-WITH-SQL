@@ -1,0 +1,1811 @@
+
+/*
+ * Library Management System
+ * Java + MySQL JDBC
+ * CUI / Console Based Application
+ */
+
+package dbcon;
+
+import java.sql.*;
+import java.util.Scanner;
+
+public class LibraryManagementSystem {
+
+    // ==========================================================
+    // DATABASE CONFIGURATION
+    // ==========================================================
+
+    static final String DB_URL =
+            "jdbc:mysql://localhost:3306/library_db";
+
+    static final String USER = "root";
+
+    // If your MySQL has no password, keep it empty
+    static final String PASS = "";
+
+
+    // ==========================================================
+    // MAIN METHOD
+    // ==========================================================
+
+    public static void main(String[] args) {
+
+        Scanner sc = new Scanner(System.in);
+
+        Connection conn = null;
+
+        try {
+
+            // Load MySQL JDBC Driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            System.out.println("======================================");
+            System.out.println("     LIBRARY MANAGEMENT SYSTEM");
+            System.out.println("======================================");
+
+            System.out.println("\nConnecting to database...");
+
+            conn = DriverManager.getConnection(
+                    DB_URL,
+                    USER,
+                    PASS
+            );
+
+            System.out.println("Database connected successfully!");
+
+            // Create tables if they do not exist
+            createTables(conn);
+
+
+            // ==================================================
+            // MAIN MENU
+            // ==================================================
+
+            int choice;
+
+            do {
+
+                System.out.println("\n======================================");
+                System.out.println("          LIBRARY MAIN MENU");
+                System.out.println("======================================");
+
+                System.out.println("1. Add Book");
+                System.out.println("2. View Books");
+                System.out.println("3. Search Book");
+                System.out.println("4. Update Book");
+                System.out.println("5. Delete Book");
+
+                System.out.println("--------------------------------------");
+
+                System.out.println("6. Add Member");
+                System.out.println("7. View Members");
+                System.out.println("8. Search Member");
+                System.out.println("9. Update Member");
+                System.out.println("10. Delete Member");
+
+                System.out.println("--------------------------------------");
+
+                System.out.println("11. Issue Book");
+                System.out.println("12. Return Book");
+                System.out.println("13. View Issued Books");
+
+                System.out.println("--------------------------------------");
+
+                System.out.println("0. Exit");
+
+                System.out.println("======================================");
+
+                System.out.print("Enter your choice: ");
+
+                choice = sc.nextInt();
+                sc.nextLine();
+
+
+                switch (choice) {
+
+                    case 1:
+                        addBook(conn, sc);
+                        break;
+
+                    case 2:
+                        viewBooks(conn);
+                        break;
+
+                    case 3:
+                        searchBook(conn, sc);
+                        break;
+
+                    case 4:
+                        updateBook(conn, sc);
+                        break;
+
+                    case 5:
+                        deleteBook(conn, sc);
+                        break;
+
+                    case 6:
+                        addMember(conn, sc);
+                        break;
+
+                    case 7:
+                        viewMembers(conn);
+                        break;
+
+                    case 8:
+                        searchMember(conn, sc);
+                        break;
+
+                    case 9:
+                        updateMember(conn, sc);
+                        break;
+
+                    case 10:
+                        deleteMember(conn, sc);
+                        break;
+
+                    case 11:
+                        issueBook(conn, sc);
+                        break;
+
+                    case 12:
+                        returnBook(conn, sc);
+                        break;
+
+                    case 13:
+                        viewIssuedBooks(conn);
+                        break;
+
+                    case 0:
+                        System.out.println(
+                                "\nThank you for using "
+                                + "Library Management System."
+                        );
+                        break;
+
+                    default:
+                        System.out.println(
+                                "\nInvalid choice!"
+                        );
+                }
+
+            } while (choice != 0);
+
+
+        } catch (ClassNotFoundException e) {
+
+            System.out.println(
+                    "\nMySQL JDBC Driver not found!"
+            );
+
+            System.out.println(
+                    "Please add mysql-connector-j.jar "
+                    + "to your NetBeans project."
+            );
+
+            e.printStackTrace();
+
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                    "\nDatabase connection error!"
+            );
+
+            e.printStackTrace();
+
+
+        } finally {
+
+            try {
+
+                if (conn != null) {
+                    conn.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            sc.close();
+        }
+    }
+
+
+    // ==========================================================
+    // CREATE TABLES
+    // ==========================================================
+
+    public static void createTables(Connection conn) {
+
+        Statement stmt = null;
+
+        try {
+
+            stmt = conn.createStatement();
+
+
+            // --------------------------------------------------
+            // BOOKS TABLE
+            // --------------------------------------------------
+
+            String booksTable =
+                    "CREATE TABLE IF NOT EXISTS books (" +
+                    "book_id INT PRIMARY KEY AUTO_INCREMENT," +
+                    "title VARCHAR(150) NOT NULL," +
+                    "author VARCHAR(100) NOT NULL," +
+                    "quantity INT NOT NULL DEFAULT 0" +
+                    ")";
+
+            stmt.executeUpdate(booksTable);
+
+
+            // --------------------------------------------------
+            // MEMBERS TABLE
+            // --------------------------------------------------
+
+            String membersTable =
+                    "CREATE TABLE IF NOT EXISTS members (" +
+                    "member_id INT PRIMARY KEY AUTO_INCREMENT," +
+                    "name VARCHAR(100) NOT NULL," +
+                    "phone VARCHAR(20)" +
+                    ")";
+
+            stmt.executeUpdate(membersTable);
+
+
+            // --------------------------------------------------
+            // ISSUED BOOKS TABLE
+            // --------------------------------------------------
+
+            String issuedTable =
+                    "CREATE TABLE IF NOT EXISTS issued_books (" +
+                    "issue_id INT PRIMARY KEY AUTO_INCREMENT," +
+                    "book_id INT NOT NULL," +
+                    "member_id INT NOT NULL," +
+                    "issue_date DATE NOT NULL," +
+                    "return_date DATE DEFAULT NULL," +
+                    "FOREIGN KEY (book_id) " +
+                    "REFERENCES books(book_id)," +
+                    "FOREIGN KEY (member_id) " +
+                    "REFERENCES members(member_id)" +
+                    ")";
+
+            stmt.executeUpdate(issuedTable);
+
+
+            System.out.println(
+                    "Database tables are ready."
+            );
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (stmt != null) {
+                    stmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // ADD BOOK
+    // ==========================================================
+
+    public static void addBook(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement pstmt = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("             ADD BOOK");
+            System.out.println("======================================");
+
+
+            System.out.print("Enter book title: ");
+            String title = sc.nextLine();
+
+
+            System.out.print("Enter author name: ");
+            String author = sc.nextLine();
+
+
+            System.out.print("Enter quantity: ");
+            int quantity = sc.nextInt();
+            sc.nextLine();
+
+
+            String sql =
+                    "INSERT INTO books "
+                    + "(title, author, quantity) "
+                    + "VALUES (?, ?, ?)";
+
+
+            pstmt =
+                    conn.prepareStatement(sql);
+
+
+            pstmt.setString(1, title);
+            pstmt.setString(2, author);
+            pstmt.setInt(3, quantity);
+
+
+            int result =
+                    pstmt.executeUpdate();
+
+
+            if (result > 0) {
+
+                System.out.println(
+                        "\nBook added successfully!"
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // VIEW BOOKS
+    // ==========================================================
+
+    public static void viewBooks(Connection conn) {
+
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("              ALL BOOKS");
+            System.out.println("======================================");
+
+
+            stmt = conn.createStatement();
+
+
+            String sql =
+                    "SELECT * FROM books "
+                    + "ORDER BY book_id";
+
+
+            rs = stmt.executeQuery(sql);
+
+
+            System.out.printf(
+                    "%-10s %-30s %-25s %-10s%n",
+                    "ID",
+                    "TITLE",
+                    "AUTHOR",
+                    "QUANTITY"
+            );
+
+
+            System.out.println(
+                    "--------------------------------------------------------------------------"
+            );
+
+
+            boolean found = false;
+
+
+            while (rs.next()) {
+
+                found = true;
+
+
+                System.out.printf(
+                        "%-10d %-30s %-25s %-10d%n",
+                        rs.getInt("book_id"),
+                        rs.getString("title"),
+                        rs.getString("author"),
+                        rs.getInt("quantity")
+                );
+            }
+
+
+            if (!found) {
+
+                System.out.println(
+                        "No books found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (stmt != null) {
+                    stmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // SEARCH BOOK
+    // ==========================================================
+
+    public static void searchBook(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("             SEARCH BOOK");
+            System.out.println("======================================");
+
+
+            System.out.print(
+                    "Enter book title or author: "
+            );
+
+            String keyword =
+                    sc.nextLine();
+
+
+            String sql =
+                    "SELECT * FROM books "
+                    + "WHERE title LIKE ? "
+                    + "OR author LIKE ?";
+
+
+            pstmt =
+                    conn.prepareStatement(sql);
+
+
+            pstmt.setString(
+                    1,
+                    "%" + keyword + "%"
+            );
+
+            pstmt.setString(
+                    2,
+                    "%" + keyword + "%"
+            );
+
+
+            rs = pstmt.executeQuery();
+
+
+            boolean found = false;
+
+
+            System.out.println();
+
+
+            while (rs.next()) {
+
+                found = true;
+
+
+                System.out.println(
+                        "Book ID : "
+                        + rs.getInt("book_id")
+                );
+
+                System.out.println(
+                        "Title   : "
+                        + rs.getString("title")
+                );
+
+                System.out.println(
+                        "Author  : "
+                        + rs.getString("author")
+                );
+
+                System.out.println(
+                        "Quantity: "
+                        + rs.getInt("quantity")
+                );
+
+                System.out.println(
+                        "--------------------------------------"
+                );
+            }
+
+
+            if (!found) {
+
+                System.out.println(
+                        "No matching book found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // UPDATE BOOK
+    // ==========================================================
+
+    public static void updateBook(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement pstmt = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("             UPDATE BOOK");
+            System.out.println("======================================");
+
+
+            System.out.print("Enter book ID: ");
+
+            int id = sc.nextInt();
+            sc.nextLine();
+
+
+            System.out.print("Enter new title: ");
+
+            String title =
+                    sc.nextLine();
+
+
+            System.out.print("Enter new author: ");
+
+            String author =
+                    sc.nextLine();
+
+
+            System.out.print("Enter new quantity: ");
+
+            int quantity =
+                    sc.nextInt();
+
+            sc.nextLine();
+
+
+            String sql =
+                    "UPDATE books "
+                    + "SET title=?, author=?, quantity=? "
+                    + "WHERE book_id=?";
+
+
+            pstmt =
+                    conn.prepareStatement(sql);
+
+
+            pstmt.setString(1, title);
+            pstmt.setString(2, author);
+            pstmt.setInt(3, quantity);
+            pstmt.setInt(4, id);
+
+
+            int result =
+                    pstmt.executeUpdate();
+
+
+            if (result > 0) {
+
+                System.out.println(
+                        "Book updated successfully!"
+                );
+
+            } else {
+
+                System.out.println(
+                        "Book ID not found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // DELETE BOOK
+    // ==========================================================
+
+    public static void deleteBook(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement pstmt = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("             DELETE BOOK");
+            System.out.println("======================================");
+
+
+            System.out.print(
+                    "Enter book ID: "
+            );
+
+            int id =
+                    sc.nextInt();
+
+            sc.nextLine();
+
+
+            System.out.print(
+                    "Are you sure? (Y/N): "
+            );
+
+            String confirm =
+                    sc.nextLine();
+
+
+            if (!confirm.equalsIgnoreCase("Y")) {
+
+                System.out.println(
+                        "Delete cancelled."
+                );
+
+                return;
+            }
+
+
+            String sql =
+                    "DELETE FROM books "
+                    + "WHERE book_id=?";
+
+
+            pstmt =
+                    conn.prepareStatement(sql);
+
+
+            pstmt.setInt(1, id);
+
+
+            int result =
+                    pstmt.executeUpdate();
+
+
+            if (result > 0) {
+
+                System.out.println(
+                        "Book deleted successfully!"
+                );
+
+            } else {
+
+                System.out.println(
+                        "Book ID not found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                    "Book cannot be deleted if "
+                    + "it has issue history."
+            );
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // ADD MEMBER
+    // ==========================================================
+
+    public static void addMember(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement pstmt = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("             ADD MEMBER");
+            System.out.println("======================================");
+
+
+            System.out.print(
+                    "Enter member name: "
+            );
+
+            String name =
+                    sc.nextLine();
+
+
+            System.out.print(
+                    "Enter phone number: "
+            );
+
+            String phone =
+                    sc.nextLine();
+
+
+            String sql =
+                    "INSERT INTO members "
+                    + "(name, phone) "
+                    + "VALUES (?, ?)";
+
+
+            pstmt =
+                    conn.prepareStatement(sql);
+
+
+            pstmt.setString(1, name);
+            pstmt.setString(2, phone);
+
+
+            int result =
+                    pstmt.executeUpdate();
+
+
+            if (result > 0) {
+
+                System.out.println(
+                        "Member added successfully!"
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // VIEW MEMBERS
+    // ==========================================================
+
+    public static void viewMembers(
+            Connection conn) {
+
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("             ALL MEMBERS");
+            System.out.println("======================================");
+
+
+            stmt =
+                    conn.createStatement();
+
+
+            String sql =
+                    "SELECT * FROM members "
+                    + "ORDER BY member_id";
+
+
+            rs =
+                    stmt.executeQuery(sql);
+
+
+            System.out.printf(
+                    "%-12s %-25s %-15s%n",
+                    "MEMBER ID",
+                    "NAME",
+                    "PHONE"
+            );
+
+
+            System.out.println(
+                    "----------------------------------------------------"
+            );
+
+
+            boolean found = false;
+
+
+            while (rs.next()) {
+
+                found = true;
+
+
+                System.out.printf(
+                        "%-12d %-25s %-15s%n",
+                        rs.getInt("member_id"),
+                        rs.getString("name"),
+                        rs.getString("phone")
+                );
+            }
+
+
+            if (!found) {
+
+                System.out.println(
+                        "No members found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (stmt != null) {
+                    stmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // SEARCH MEMBER
+    // ==========================================================
+
+    public static void searchMember(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("            SEARCH MEMBER");
+            System.out.println("======================================");
+
+
+            System.out.print(
+                    "Enter member name or phone: "
+            );
+
+            String keyword =
+                    sc.nextLine();
+
+
+            String sql =
+                    "SELECT * FROM members "
+                    + "WHERE name LIKE ? "
+                    + "OR phone LIKE ?";
+
+
+            pstmt =
+                    conn.prepareStatement(sql);
+
+
+            pstmt.setString(
+                    1,
+                    "%" + keyword + "%"
+            );
+
+            pstmt.setString(
+                    2,
+                    "%" + keyword + "%"
+            );
+
+
+            rs =
+                    pstmt.executeQuery();
+
+
+            boolean found = false;
+
+
+            while (rs.next()) {
+
+                found = true;
+
+
+                System.out.println(
+                        "\nMember ID : "
+                        + rs.getInt("member_id")
+                );
+
+                System.out.println(
+                        "Name      : "
+                        + rs.getString("name")
+                );
+
+                System.out.println(
+                        "Phone     : "
+                        + rs.getString("phone")
+                );
+
+                System.out.println(
+                        "--------------------------------------"
+                );
+            }
+
+
+            if (!found) {
+
+                System.out.println(
+                        "No member found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // UPDATE MEMBER
+    // ==========================================================
+
+    public static void updateMember(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement pstmt = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("            UPDATE MEMBER");
+            System.out.println("======================================");
+
+
+            System.out.print(
+                    "Enter member ID: "
+            );
+
+            int id =
+                    sc.nextInt();
+
+            sc.nextLine();
+
+
+            System.out.print(
+                    "Enter new name: "
+            );
+
+            String name =
+                    sc.nextLine();
+
+
+            System.out.print(
+                    "Enter new phone: "
+            );
+
+            String phone =
+                    sc.nextLine();
+
+
+            String sql =
+                    "UPDATE members "
+                    + "SET name=?, phone=? "
+                    + "WHERE member_id=?";
+
+
+            pstmt =
+                    conn.prepareStatement(sql);
+
+
+            pstmt.setString(1, name);
+            pstmt.setString(2, phone);
+            pstmt.setInt(3, id);
+
+
+            int result =
+                    pstmt.executeUpdate();
+
+
+            if (result > 0) {
+
+                System.out.println(
+                        "Member updated successfully!"
+                );
+
+            } else {
+
+                System.out.println(
+                        "Member ID not found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // DELETE MEMBER
+    // ==========================================================
+
+    public static void deleteMember(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement pstmt = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("            DELETE MEMBER");
+            System.out.println("======================================");
+
+
+            System.out.print(
+                    "Enter member ID: "
+            );
+
+            int id =
+                    sc.nextInt();
+
+            sc.nextLine();
+
+
+            System.out.print(
+                    "Are you sure? (Y/N): "
+            );
+
+            String confirm =
+                    sc.nextLine();
+
+
+            if (!confirm.equalsIgnoreCase("Y")) {
+
+                System.out.println(
+                        "Delete cancelled."
+                );
+
+                return;
+            }
+
+
+            String sql =
+                    "DELETE FROM members "
+                    + "WHERE member_id=?";
+
+
+            pstmt =
+                    conn.prepareStatement(sql);
+
+
+            pstmt.setInt(1, id);
+
+
+            int result =
+                    pstmt.executeUpdate();
+
+
+            if (result > 0) {
+
+                System.out.println(
+                        "Member deleted successfully!"
+                );
+
+            } else {
+
+                System.out.println(
+                        "Member ID not found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                    "Member cannot be deleted if "
+                    + "issue history exists."
+            );
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // ISSUE BOOK
+    // ==========================================================
+
+    public static void issueBook(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement checkStmt = null;
+        PreparedStatement issueStmt = null;
+        PreparedStatement updateStmt = null;
+        ResultSet rs = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("              ISSUE BOOK");
+            System.out.println("======================================");
+
+
+            System.out.print(
+                    "Enter Book ID: "
+            );
+
+            int bookId =
+                    sc.nextInt();
+
+
+            System.out.print(
+                    "Enter Member ID: "
+            );
+
+            int memberId =
+                    sc.nextInt();
+
+            sc.nextLine();
+
+
+            // --------------------------------------------------
+            // CHECK BOOK
+            // --------------------------------------------------
+
+            String checkBook =
+                    "SELECT quantity "
+                    + "FROM books "
+                    + "WHERE book_id=?";
+
+
+            checkStmt =
+                    conn.prepareStatement(
+                            checkBook
+                    );
+
+
+            checkStmt.setInt(
+                    1,
+                    bookId
+            );
+
+
+            rs =
+                    checkStmt.executeQuery();
+
+
+            if (!rs.next()) {
+
+                System.out.println(
+                        "Book ID does not exist."
+                );
+
+                return;
+            }
+
+
+            int quantity =
+                    rs.getInt("quantity");
+
+
+            if (quantity <= 0) {
+
+                System.out.println(
+                        "Book is not available."
+                );
+
+                return;
+            }
+
+
+            // --------------------------------------------------
+            // CHECK MEMBER
+            // --------------------------------------------------
+
+            String checkMember =
+                    "SELECT member_id "
+                    + "FROM members "
+                    + "WHERE member_id=?";
+
+
+            PreparedStatement memberStmt =
+                    conn.prepareStatement(
+                            checkMember
+                    );
+
+
+            memberStmt.setInt(
+                    1,
+                    memberId
+            );
+
+
+            ResultSet memberRs =
+                    memberStmt.executeQuery();
+
+
+            if (!memberRs.next()) {
+
+                System.out.println(
+                        "Member ID does not exist."
+                );
+
+                memberRs.close();
+                memberStmt.close();
+
+                return;
+            }
+
+
+            memberRs.close();
+            memberStmt.close();
+
+
+            // --------------------------------------------------
+            // CHECK DUPLICATE ISSUE
+            // --------------------------------------------------
+
+            String duplicateSql =
+                    "SELECT issue_id "
+                    + "FROM issued_books "
+                    + "WHERE book_id=? "
+                    + "AND member_id=? "
+                    + "AND return_date IS NULL";
+
+
+            PreparedStatement duplicateStmt =
+                    conn.prepareStatement(
+                            duplicateSql
+                    );
+
+
+            duplicateStmt.setInt(
+                    1,
+                    bookId
+            );
+
+            duplicateStmt.setInt(
+                    2,
+                    memberId
+            );
+
+
+            ResultSet duplicateRs =
+                    duplicateStmt.executeQuery();
+
+
+            if (duplicateRs.next()) {
+
+                System.out.println(
+                        "This member already has "
+                        + "this book."
+                );
+
+                duplicateRs.close();
+                duplicateStmt.close();
+
+                return;
+            }
+
+
+            duplicateRs.close();
+            duplicateStmt.close();
+
+
+            // --------------------------------------------------
+            // INSERT ISSUE RECORD
+            // --------------------------------------------------
+
+            String issueSql =
+                    "INSERT INTO issued_books "
+                    + "(book_id, member_id, issue_date) "
+                    + "VALUES (?, ?, CURDATE())";
+
+
+            issueStmt =
+                    conn.prepareStatement(
+                            issueSql
+                    );
+
+
+            issueStmt.setInt(
+                    1,
+                    bookId
+            );
+
+            issueStmt.setInt(
+                    2,
+                    memberId
+            );
+
+
+            issueStmt.executeUpdate();
+
+
+            // --------------------------------------------------
+            // DECREASE BOOK QUANTITY
+            // --------------------------------------------------
+
+            String updateSql =
+                    "UPDATE books "
+                    + "SET quantity = quantity - 1 "
+                    + "WHERE book_id=?";
+
+
+            updateStmt =
+                    conn.prepareStatement(
+                            updateSql
+                    );
+
+
+            updateStmt.setInt(
+                    1,
+                    bookId
+            );
+
+
+            updateStmt.executeUpdate();
+
+
+            System.out.println(
+                    "\nBook issued successfully!"
+            );
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (checkStmt != null) {
+                    checkStmt.close();
+                }
+
+                if (issueStmt != null) {
+                    issueStmt.close();
+                }
+
+                if (updateStmt != null) {
+                    updateStmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // RETURN BOOK
+    // ==========================================================
+
+    public static void returnBook(
+            Connection conn,
+            Scanner sc) {
+
+        PreparedStatement findStmt = null;
+        PreparedStatement returnStmt = null;
+        PreparedStatement updateStmt = null;
+
+        ResultSet rs = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("              RETURN BOOK");
+            System.out.println("======================================");
+
+
+            System.out.print(
+                    "Enter Issue ID: "
+            );
+
+            int issueId =
+                    sc.nextInt();
+
+            sc.nextLine();
+
+
+            // --------------------------------------------------
+            // FIND ACTIVE ISSUE
+            // --------------------------------------------------
+
+            String findSql =
+                    "SELECT book_id "
+                    + "FROM issued_books "
+                    + "WHERE issue_id=? "
+                    + "AND return_date IS NULL";
+
+
+            findStmt =
+                    conn.prepareStatement(
+                            findSql
+                    );
+
+
+            findStmt.setInt(
+                    1,
+                    issueId
+            );
+
+
+            rs =
+                    findStmt.executeQuery();
+
+
+            if (!rs.next()) {
+
+                System.out.println(
+                        "Active issue record not found."
+                );
+
+                return;
+            }
+
+
+            int bookId =
+                    rs.getInt("book_id");
+
+
+            // --------------------------------------------------
+            // UPDATE RETURN DATE
+            // --------------------------------------------------
+
+            String returnSql =
+                    "UPDATE issued_books "
+                    + "SET return_date=CURDATE() "
+                    + "WHERE issue_id=?";
+
+
+            returnStmt =
+                    conn.prepareStatement(
+                            returnSql
+                    );
+
+
+            returnStmt.setInt(
+                    1,
+                    issueId
+            );
+
+
+            returnStmt.executeUpdate();
+
+
+            // --------------------------------------------------
+            // INCREASE BOOK QUANTITY
+            // --------------------------------------------------
+
+            String updateSql =
+                    "UPDATE books "
+                    + "SET quantity = quantity + 1 "
+                    + "WHERE book_id=?";
+
+
+            updateStmt =
+                    conn.prepareStatement(
+                            updateSql
+                    );
+
+
+            updateStmt.setInt(
+                    1,
+                    bookId
+            );
+
+
+            updateStmt.executeUpdate();
+
+
+            System.out.println(
+                    "\nBook returned successfully!"
+            );
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (findStmt != null) {
+                    findStmt.close();
+                }
+
+                if (returnStmt != null) {
+                    returnStmt.close();
+                }
+
+                if (updateStmt != null) {
+                    updateStmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    // ==========================================================
+    // VIEW ISSUED BOOKS
+    // ==========================================================
+
+    public static void viewIssuedBooks(
+            Connection conn) {
+
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+
+            System.out.println("\n======================================");
+            System.out.println("            ISSUED BOOKS");
+            System.out.println("======================================");
+
+
+            stmt =
+                    conn.createStatement();
+
+
+            String sql =
+                    "SELECT "
+                    + "i.issue_id, "
+                    + "b.book_id, "
+                    + "b.title, "
+                    + "m.member_id, "
+                    + "m.name, "
+                    + "i.issue_date, "
+                    + "i.return_date "
+                    + "FROM issued_books i "
+                    + "JOIN books b "
+                    + "ON i.book_id = b.book_id "
+                    + "JOIN members m "
+                    + "ON i.member_id = m.member_id "
+                    + "ORDER BY i.issue_id";
+
+
+            rs =
+                    stmt.executeQuery(sql);
+
+
+            System.out.printf(
+                    "%-8s %-8s %-25s %-10s %-20s %-15s %-15s%n",
+                    "ISSUE ID",
+                    "BOOK ID",
+                    "BOOK TITLE",
+                    "MEMBER ID",
+                    "MEMBER NAME",
+                    "ISSUE DATE",
+                    "RETURN DATE"
+            );
+
+
+            System.out.println(
+                    "----------------------------------------------------------------------------------------------------------------"
+            );
+
+
+            boolean found = false;
+
+
+            while (rs.next()) {
+
+                found = true;
+
+
+                String returnDate;
+
+
+                if (rs.getDate("return_date") == null) {
+
+                    returnDate =
+                            "Not Returned";
+
+                } else {
+
+                    returnDate =
+                            rs.getDate(
+                                    "return_date"
+                            ).toString();
+                }
+
+
+                System.out.printf(
+                        "%-8d %-8d %-25s %-10d %-20s %-15s %-15s%n",
+                        rs.getInt("issue_id"),
+                        rs.getInt("book_id"),
+                        rs.getString("title"),
+                        rs.getInt("member_id"),
+                        rs.getString("name"),
+                        rs.getDate("issue_date"),
+                        returnDate
+                );
+            }
+
+
+            if (!found) {
+
+                System.out.println(
+                        "No issued books found."
+                );
+            }
+
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            try {
+
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (stmt != null) {
+                    stmt.close();
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
